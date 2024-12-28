@@ -17,6 +17,9 @@ LVIM_CONFIG_DEST_DIR="$HOME/.config/lvim"
 # Specific LunarVim branch (optional)
 LV_BRANCH="release-1.4/neovim-0.9"
 
+# We'll store changes to PATH in these environment files
+ZPROFILE="$HOME/.zprofile"
+
 # ----------------------------------------------------------------------------
 # 2. Ensure Command Line Tools are Installed
 # ----------------------------------------------------------------------------
@@ -34,7 +37,12 @@ if ! command -v brew &>/dev/null; then
   echo "[INFO] Homebrew not found. Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-  echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.bash_profile"
+  if [[ ":$PATH:" != *":/opt/homebrew/bin:"* ]]; then
+    {
+      echo ""
+      echo 'eval "$(/opt/homebrew/bin/brew shellenv)"'
+    } >> "$ZPROFILE"
+  fi
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
   echo "[INFO] Homebrew is already installed."
@@ -47,7 +55,20 @@ echo "[INFO] Installing core CLI dependencies for LunarVim..."
 brew install neovim node python ripgrep fd
 
 # ----------------------------------------------------------------------------
-# 5. Install pipx (for Python packages like pynvim)
+# 5. Ensure ~/.local/bin in PATH
+# ----------------------------------------------------------------------------
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+  echo "[INFO] Adding ~/.local/bin to PATH in $ZPROFILE..."
+  {
+    echo ""
+    echo 'export PATH="$HOME/.local/bin:$PATH"'
+  } >> "$ZPROFILE"
+
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# ----------------------------------------------------------------------------
+# 6. Install pipx (for Python packages like pynvim)
 # ----------------------------------------------------------------------------
 if ! command -v pipx &>/dev/null; then
   echo "[INFO] Installing pipx..."
@@ -58,22 +79,24 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 6. Install pynvim via pipx
+# 7. Install pynvim via pipx
 # ----------------------------------------------------------------------------
 echo "[INFO] Installing pynvim with pipx..."
 pipx install pynvim || {
-  echo "[WARN] pynvim may already be installed or pipx encountered an error."
+  echo "[WARN] pynvim may already be installed or pipx encountered a minor error."
+  echo "[WARN] If installed, ignoring the 'No apps associated' message is generally fine."
 }
 
 # ----------------------------------------------------------------------------
-# 7. Install Additional GUI Applications
+# 8. Install Additional GUI Applications
 # ----------------------------------------------------------------------------
-echo "[INFO] Installing additional applications..."
-# You can add more GUI apps below as needed:
+echo "[INFO] Installing additional GUI applications..."
 brew install --cask ghostty
+brew install --cask rectangle
+# You can add more GUI apps here, e.g.:
 
 # ----------------------------------------------------------------------------
-# 8. Check if LunarVim is Already Installed
+# 9. Check if LunarVim is Already Installed
 # ----------------------------------------------------------------------------
 if command -v lvim &>/dev/null; then
   echo "[INFO] LunarVim is already installed ($(lvim --version | head -n 1))."
@@ -90,14 +113,14 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 9. Copy LunarVim config from dotfiles
+# 10. Copy LunarVim config from dotfiles
 # ----------------------------------------------------------------------------
 echo "[INFO] Copying your LunarVim config from $LVIM_CONFIG_SRC_DIR to $LVIM_CONFIG_DEST_DIR..."
 mkdir -p "$LVIM_CONFIG_DEST_DIR"
 cp -r "$LVIM_CONFIG_SRC_DIR/"* "$LVIM_CONFIG_DEST_DIR/"
 
 # ----------------------------------------------------------------------------
-# 10. Verification
+# 11. Verification
 # ----------------------------------------------------------------------------
 echo "[INFO] Verifying installation..."
 nvim_version=$(nvim --version 2>/dev/null | head -n 1 || echo "Neovim not found")
@@ -105,3 +128,8 @@ lvim_version=$(lvim --version 2>/dev/null | head -n 1 || echo "LunarVim not foun
 
 echo "Neovim version: $nvim_version"
 echo "LunarVim version: $lvim_version"
+
+echo "[INFO] Setup complete!"
+echo "You may need to open a new terminal or run 'source ~/.zprofile' if your PATH changes aren't reflected."
+echo "Then run 'lvim' to enjoy your configured LunarVim."
+
