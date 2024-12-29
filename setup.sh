@@ -5,21 +5,18 @@ set -euo pipefail
 # 1. Variables
 # ----------------------------------------------------------------------------
 
-# Where you want dotfiles cloned (e.g. ~/.config/dotfiles or ~/dotfiles)
+# Where you want dotfiles cloned (e.g., ~/.config/dotfiles or ~/dotfiles)
 DOTFILES_DIR="$HOME/.config/dotfiles"
 
-# Where your LunarVim config files reside within your dotfiles repo
-LVIM_CONFIG_SRC_DIR="$DOTFILES_DIR/lvim"
-LVIM_CONFIG_DEST_DIR="$HOME/.config/lvim"
-
-# Branch of LunarVim to install (optional)
-LV_BRANCH="release-1.4/neovim-0.9"
+# Neovim configuration paths
+NVIM_CONFIG_DIR="$HOME/.config/nvim"
+NVIM_DOTFILES_DIR="$DOTFILES_DIR/nvim"
 
 # We'll store changes to PATH in these environment files
 ZPROFILE="$HOME/.zprofile"
 
 # Zsh-related paths
-ZSHRC_SRC="$DOTFILES_DIR/shell/zshrc"  # Adjust if your .zshrc is elsewhere
+ZSHRC_SRC="$DOTFILES_DIR/shell/zshrc" # Adjust if your .zshrc is elsewhere
 ZSHRC_DEST="$HOME/.zshrc"
 
 # ----------------------------------------------------------------------------
@@ -44,7 +41,7 @@ if ! command -v brew &>/dev/null; then
     {
       echo ""
       echo 'eval "$(/opt/homebrew/bin/brew shellenv)"'
-    } >> "$ZPROFILE"
+    } >>"$ZPROFILE"
   fi
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
@@ -54,8 +51,8 @@ fi
 # ----------------------------------------------------------------------------
 # 4. Install Core CLI Dependencies
 # ----------------------------------------------------------------------------
-echo "[INFO] Installing core CLI dependencies for LunarVim..."
-brew install neovim node python ripgrep fd
+echo "[INFO] Installing core CLI dependencies for LazyVim..."
+brew install neovim git curl fzf ripgrep fd lazygit tree
 
 # ----------------------------------------------------------------------------
 # 5. Ensure ~/.local/bin in PATH
@@ -65,7 +62,7 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   {
     echo ""
     echo 'export PATH="$HOME/.local/bin:$PATH"'
-  } >> "$ZPROFILE"
+  } >>"$ZPROFILE"
 
   export PATH="$HOME/.local/bin:$PATH"
 fi
@@ -91,7 +88,7 @@ pipx install pynvim || {
 }
 
 # ----------------------------------------------------------------------------
-# 8. Install Additional GUI Applications
+# 8. Install Additional GUI Applications (Optional)
 # ----------------------------------------------------------------------------
 echo "[INFO] Installing additional GUI applications..."
 brew install --cask ghostty
@@ -105,7 +102,7 @@ if [ -d "$HOME/.oh-my-zsh" ]; then
   echo "[INFO] Oh My Zsh is already installed. Skipping."
 else
   echo "[INFO] Oh My Zsh not found. Installing..."
-  unset ZSH  # In case it's set to something
+  unset ZSH # In case it's set to something
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
     echo "[WARN] Oh My Zsh installation may have encountered an error."
   }
@@ -137,47 +134,49 @@ brew install zsh-autosuggestions
 brew install zsh-syntax-highlighting
 
 # ----------------------------------------------------------------------------
-# 12. (Optional) Confirm Final Lines in .zshrc
+# 12. Install LazyVim Starter Configuration
 # ----------------------------------------------------------------------------
-# Instead of appending lines, we rely on your dotfiles' .zshrc having:
-#   source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-#   source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-# near the end, ensuring they're loaded last.
-
-# ----------------------------------------------------------------------------
-# 13. Check if LunarVim is Already Installed
-# ----------------------------------------------------------------------------
-if command -v lvim &>/dev/null; then
-  echo "[INFO] LunarVim is already installed ($(lvim --version | head -n 1))."
-  read -rp "Would you like to reinstall/upgrade LunarVim? (y/n) " response
-  if [[ "$response" =~ ^[Yy]$ ]]; then
-    echo "[INFO] Reinstalling LunarVim from branch: $LV_BRANCH"
-    bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/$LV_BRANCH/utils/installer/install.sh)
-  else
-    echo "[INFO] Skipping LunarVim reinstallation."
-  fi
+if [ -d "$NVIM_CONFIG_DIR" ]; then
+  echo "[INFO] LazyVim is already installed at $NVIM_CONFIG_DIR. Skipping installation."
 else
-  echo "[INFO] Installing LunarVim from branch: $LV_BRANCH"
-  bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/$LV_BRANCH/utils/installer/install.sh)
+  echo "[INFO] Installing LazyVim Starter Configuration..."
+
+  # Ensure that the dotfiles repository has been cloned
+  if [ ! -d "$NVIM_DOTFILES_DIR" ]; then
+    echo "[ERROR] Neovim configuration directory not found in dotfiles at $NVIM_DOTFILES_DIR."
+    echo "Please ensure that your dotfiles repository contains the 'nvim' folder."
+    exit 1
+  fi
+
+  # Backup existing Neovim configuration directories (if any)
+  echo "[INFO] Backing up existing Neovim configurations (if any)..."
+  for dir in "$NVIM_CONFIG_DIR" "$HOME/.local/share/nvim" "$HOME/.local/state/nvim" "$HOME/.cache/nvim"; do
+    if [ -d "$dir" ]; then
+      mv "$dir" "${dir}.bak.$(date +"%Y%m%d_%H%M%S")"
+      echo "[INFO] Backed up $dir to ${dir}.bak.$(date +"%Y%m%d_%H%M%S")"
+    fi
+  done
+
+  # Copy nvim configuration from dotfiles to ~/.config/nvim
+  echo "[INFO] Copying Neovim configuration from dotfiles..."
+  cp -R "$NVIM_DOTFILES_DIR/" "$NVIM_CONFIG_DIR/"
+
+  # Launch Neovim to allow LazyVim to set up its configuration
+  echo "[INFO] Launching Neovim to complete LazyVim setup..."
+  nvim --headless "+Lazy! sync" +qa
+
+  echo "[INFO] LazyVim Starter configuration has been successfully installed."
 fi
 
 # ----------------------------------------------------------------------------
-# 14. Copy LunarVim config from dotfiles
+# 13. Final Steps
 # ----------------------------------------------------------------------------
-echo "[INFO] Copying your LunarVim config from $LVIM_CONFIG_SRC_DIR to $LVIM_CONFIG_DEST_DIR..."
-mkdir -p "$LVIM_CONFIG_DEST_DIR"
-cp -r "$LVIM_CONFIG_SRC_DIR/"* "$LVIM_CONFIG_DEST_DIR/"
+echo "[INFO] Setup complete! Initializing LazyVim..."
 
-# ----------------------------------------------------------------------------
-# 15. Verification
-# ----------------------------------------------------------------------------
-echo "[INFO] Verifying installation..."
-nvim_version=$(nvim --version 2>/dev/null | head -n 1 || echo "Neovim not found")
-lvim_version=$(lvim --version 2>/dev/null | head -n 1 || echo "LunarVim not found")
+# Start Neovim to allow LazyVim to set up its configuration
+echo "[INFO] Launching Neovim to complete setup..."
+nvim
 
-echo "Neovim version: $nvim_version"
-echo "LunarVim version: $lvim_version"
-
-echo "[INFO] Setup complete!"
+echo "[INFO] LazyVim Starter configuration has been successfully installed."
 echo "You may need to open a new terminal or run 'source ~/.zprofile' if your PATH changes aren't reflected."
-echo "Then run 'lvim' to enjoy your configured LunarVim."
+echo "Then run 'nvim' to enjoy your configured LazyVim."
