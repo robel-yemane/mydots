@@ -1,3 +1,5 @@
+
+```
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -5,18 +7,19 @@ set -euo pipefail
 # 1. Variables
 # ----------------------------------------------------------------------------
 
-# Where you want dotfiles cloned (e.g., ~/.config/dotfiles or ~/dotfiles)
+# Dotfiles and Brewfile paths
 DOTFILES_DIR="$HOME/.config/dotfiles"
+BREWFILE_PATH="$DOTFILES_DIR/Brewfile"
 
 # Neovim configuration paths
 NVIM_CONFIG_DIR="$HOME/.config/nvim"
 NVIM_DOTFILES_DIR="$DOTFILES_DIR/nvim"
 
-# We'll store changes to PATH in these environment files
+# Environment files
 ZPROFILE="$HOME/.zprofile"
 
 # Zsh-related paths
-ZSHRC_SRC="$DOTFILES_DIR/shell/zshrc" # Adjust if your .zshrc is elsewhere
+ZSHRC_SRC="$DOTFILES_DIR/shell/zshrc"
 ZSHRC_DEST="$HOME/.zshrc"
 
 # ----------------------------------------------------------------------------
@@ -36,7 +39,7 @@ if ! command -v brew &>/dev/null; then
   echo "[INFO] Homebrew not found. Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-  # On Apple Silicon, /opt/homebrew/bin is typical. On Intel, /usr/local/bin.
+  # Add Homebrew to PATH
   if [[ ":$PATH:" != *":/opt/homebrew/bin:"* ]]; then
     {
       echo ""
@@ -49,10 +52,14 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 4. Install Core CLI Dependencies
+# 4. Install Apps Using Brewfile
 # ----------------------------------------------------------------------------
-echo "[INFO] Installing core CLI dependencies for LazyVim..."
-brew install neovim git curl fzf ripgrep fd lazygit tree
+if [ -f "$BREWFILE_PATH" ]; then
+  echo "[INFO] Installing packages from Brewfile at $BREWFILE_PATH..."
+  brew bundle --file="$BREWFILE_PATH"
+else
+  echo "[WARN] Brewfile not found at $BREWFILE_PATH. Skipping package installation."
+fi
 
 # ----------------------------------------------------------------------------
 # 5. Ensure ~/.local/bin in PATH
@@ -68,19 +75,16 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
 fi
 
 # ----------------------------------------------------------------------------
-# 6. Install pipx (for Python packages like pynvim)
+# 6. Ensure pipx PATH and Install pynvim
 # ----------------------------------------------------------------------------
 if ! command -v pipx &>/dev/null; then
-  echo "[INFO] Installing pipx..."
-  brew install pipx
-  pipx ensurepath
-else
-  echo "[INFO] pipx is already installed."
+  echo "[ERROR] pipx not installed. Ensure it's included in your Brewfile."
+  exit 1
 fi
 
-# ----------------------------------------------------------------------------
-# 7. Install pynvim via pipx
-# ----------------------------------------------------------------------------
+echo "[INFO] Ensuring pipx PATH setup..."
+pipx ensurepath
+
 echo "[INFO] Installing pynvim with pipx..."
 pipx install pynvim || {
   echo "[WARN] pynvim may already be installed or pipx encountered a minor error."
@@ -88,14 +92,7 @@ pipx install pynvim || {
 }
 
 # ----------------------------------------------------------------------------
-# 8. Install Additional GUI Applications (Optional)
-# ----------------------------------------------------------------------------
-echo "[INFO] Installing additional GUI applications..."
-brew install --cask ghostty
-brew install --cask rectangle
-
-# ----------------------------------------------------------------------------
-# 9. Install Oh My Zsh (only if missing)
+# 7. Install Oh My Zsh (only if missing)
 # ----------------------------------------------------------------------------
 echo "[INFO] Checking for Oh My Zsh..."
 if [ -d "$HOME/.oh-my-zsh" ]; then
@@ -109,7 +106,7 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 10. Backup existing .zshrc and copy from dotfiles
+# 8. Backup existing .zshrc and copy from dotfiles
 # ----------------------------------------------------------------------------
 echo "[INFO] Handling ~/.zshrc configuration..."
 
@@ -127,14 +124,7 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 11. Install zsh-autosuggestions & zsh-syntax-highlighting
-# ----------------------------------------------------------------------------
-echo "[INFO] Installing zsh-autosuggestions & zsh-syntax-highlighting..."
-brew install zsh-autosuggestions
-brew install zsh-syntax-highlighting
-
-# ----------------------------------------------------------------------------
-# 12. Install LazyVim Starter Configuration
+# 9. Install LazyVim Starter Configuration
 # ----------------------------------------------------------------------------
 if [ -d "$NVIM_CONFIG_DIR" ]; then
   echo "[INFO] LazyVim is already installed at $NVIM_CONFIG_DIR. Skipping installation."
@@ -169,7 +159,7 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 13. Final Steps
+# 10. Final Steps
 # ----------------------------------------------------------------------------
 echo "[INFO] Setup complete! Initializing LazyVim..."
 
@@ -180,3 +170,5 @@ nvim
 echo "[INFO] LazyVim Starter configuration has been successfully installed."
 echo "You may need to open a new terminal or run 'source ~/.zprofile' if your PATH changes aren't reflected."
 echo "Then run 'nvim' to enjoy your configured LazyVim."
+
+```
