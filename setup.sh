@@ -1,5 +1,3 @@
-
-```
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -170,5 +168,3 @@ nvim
 echo "[INFO] LazyVim Starter configuration has been successfully installed."
 echo "You may need to open a new terminal or run 'source ~/.zprofile' if your PATH changes aren't reflected."
 echo "Then run 'nvim' to enjoy your configured LazyVim."
-
-```
