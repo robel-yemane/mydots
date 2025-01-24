@@ -1,24 +1,26 @@
-# CLI Applications
 tap "hashicorp/tap"
 tap "homebrew/bundle"
+brew "awscli"
 brew "curl"
 brew "fd"
 brew "fzf"
 brew "git"
+brew "gnupg"
 brew "go"
 brew "lazygit"
 brew "neovim"
 brew "node"
 brew "pipx"
 brew "ripgrep"
+brew "terraform-docs"
+brew "tflint"
+brew "tmux"
 brew "tree"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 brew "hashicorp/tap/terraform"
-cask ghostty
-cask rectangle
+cask "font-caskaydia-cove-nerd-font"
 cask "font-hack-nerd-font"
-
-# GUI Applications
+cask "font-jetbrains-mono"
 cask "obsidian"
 cask "rectangle"
