@@ -12,6 +12,8 @@ BREWFILE_PATH="$DOTFILES_DIR/Brewfile"
 # Neovim configuration paths
 NVIM_CONFIG_DIR="$HOME/.config/nvim"
 NVIM_DOTFILES_DIR="$DOTFILES_DIR/nvim"
+# Python version
+DEFAULT_PYTHON_VERSION="3.12.2"
 
 # Environment files
 ZPROFILE="$HOME/.zprofile"
@@ -73,6 +75,24 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
 fi
 
 # ----------------------------------------------------------------------------
+# 5.1 Python Environment Setup: pyenv, virtualenv, poetry
+# ----------------------------------------------------------------------------
+
+echo "[INFO] Ensuring pyenv, pyenv-virtualenv, and poetry are configured in zshrc..."
+
+if ! grep -q 'PYENV_ROOT' "$ZSHRC_DEST"; then
+  {
+    echo ''
+    echo '# pyenv + pyenv-virtualenv config'
+    echo 'export PYENV_ROOT="$HOME/.pyenv"'
+    echo 'export PATH="$PYENV_ROOT/bin:$PATH"'
+    echo 'eval "$(pyenv init --path)"'
+    echo 'eval "$(pyenv init -)"'
+    echo 'eval "$(pyenv virtualenv-init -)"'
+  } >>"$ZSHRC_DEST"
+fi
+#
+# ----------------------------------------------------------------------------
 # 6. Ensure pipx PATH and Install pynvim
 # ----------------------------------------------------------------------------
 if ! command -v pipx &>/dev/null; then
@@ -88,6 +108,21 @@ pipx install pynvim || {
   echo "[WARN] pynvim may already be installed or pipx encountered a minor error."
   echo "[WARN] If installed, ignoring the 'No apps associated' message is generally fine."
 }
+# ----------------------------------------------------------------------------
+# 6.1 Install Python version and set it globally
+# ----------------------------------------------------------------------------
+
+echo "[INFO] Installing and setting default Python via pyenv..."
+
+if ! pyenv versions | grep -q "$DEFAULT_PYTHON_VERSION"; then
+  echo "[INFO] Installing Python $DEFAULT_PYTHON_VERSION..."
+  pyenv install "$DEFAULT_PYTHON_VERSION"
+fi
+
+pyenv global "$DEFAULT_PYTHON_VERSION"
+
+echo "[INFO] Ensuring Poetry environment is ready..."
+poetry config virtualenvs.in-project true # optional: keep .venv inside project dir
 
 # ----------------------------------------------------------------------------
 # 7. Install Oh My Zsh (only if missing)
