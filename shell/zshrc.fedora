@@ -1,0 +1,11 @@
+typeset -U PATH path
+export GOPATH="$HOME/workspace/go"
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$PATH:$GOPATH/bin"
+
+export ZSH="$HOME/.oh-my-zsh"
+# Starship provides the prompt.
+ZSH_THEME=""
+plugins=(git golang kubectl terraform zsh-autosuggestions zsh-syntax-highlighting)
+
+source "$ZSH/oh-my-zsh.sh"
+eval "$(starship init zsh)"
